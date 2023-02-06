@@ -124,7 +124,6 @@ namespace Joystick_Reaction_Timer
                             }
                             break;
                         case State.step0:
-                            timer = Stopwatch.StartNew(); // Start a timer
                             sw = Stopwatch.StartNew(); // Start a timer
                             state = State.step1;
                             break;
@@ -132,7 +131,8 @@ namespace Joystick_Reaction_Timer
                             int delay = 5000;
                             
                             if (sw.ElapsedMilliseconds>delay) // Allow time for the user to pickup the contoller after picking start.
-                            {                          
+                            {
+                                timer = Stopwatch.StartNew(); // Start a timer
                                 state = State.step2;
                                 break;
                             }
@@ -143,6 +143,7 @@ namespace Joystick_Reaction_Timer
                             });
                             break;
                         case State.step2:
+
                             this.label1.Invoke((MethodInvoker)delegate
                             {
                                 this.label1.Text = String.Format("Press Button: {0}", "--");
@@ -159,7 +160,7 @@ namespace Joystick_Reaction_Timer
                             }
                             break;
                         case State.step4:
-                            int button = randomButton.Next(0, 13);
+                            int button = randomButton.Next(0, 14);
                             String buttonName = Enum.GetName(typeof(LogitechF310Buttons), button).Replace("_"," ");
                             this.label1.Invoke((MethodInvoker)delegate
                             {
@@ -169,6 +170,7 @@ namespace Joystick_Reaction_Timer
                             state = State.step5;
                             buttonRequests.Add(new ButtonPress(DateTime.Now, buttonName));
                             sw = Stopwatch.StartNew(); // Start a timer
+                            joystick.GetBufferedData();
 
                             break;
 
@@ -176,6 +178,12 @@ namespace Joystick_Reaction_Timer
                             if (timer.ElapsedMilliseconds > buttonRequestTime)
                             {
                                 state = State.step6;
+                                break;
+                            }
+                            if (joystickConnected == false)
+                            {
+                                state = State.Init;
+                                resetData();
                                 break;
                             }
                             var datas = joystick.GetBufferedData();
@@ -204,6 +212,10 @@ namespace Joystick_Reaction_Timer
                                 {
                                     if (data.Value == -1)
                                         break;
+                                    if(Enum.GetName(typeof(LogitechF310POV), data.Value)==null)
+                                    {
+                                        break;
+                                    }
                                     String buttonName1 = Enum.GetName(typeof(LogitechF310POV), data.Value).Replace("_", " ");
                                     buttonPresses.Add(new ButtonPress(DateTime.Now, buttonName1));
 
@@ -241,6 +253,14 @@ namespace Joystick_Reaction_Timer
             {
             }
         }
+        private void resetData()
+        {
+            buttonPresses.Clear();
+            buttonRequests.Clear();
+            correctPresses.Clear();
+            incorrectPresses.Clear();
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             if(button1.Text=="Start")
@@ -248,10 +268,7 @@ namespace Joystick_Reaction_Timer
             if(button1.Text == "Clear")
             {
                 // Get the button presses from the actualButtonPress list between the two button presses from the requestedButton list
-                buttonPresses.Clear();
-                buttonRequests.Clear();
-                correctPresses.Clear();
-                incorrectPresses.Clear();
+                resetData();
                 state = State.Init;
                 button1.Text = "Start";
 
@@ -286,11 +303,8 @@ namespace Joystick_Reaction_Timer
                             }
                         }
                     }
-                    
-                    buttonPresses.Clear();
-                    buttonRequests.Clear();
-                    correctPresses.Clear();
-                    incorrectPresses.Clear();
+
+                    resetData();
                 }
                 
                 // Get the button presses from the actualButtonPress list between the two button presses from the requestedButton list
